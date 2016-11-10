@@ -75,7 +75,6 @@ bool firstLessThenNext(string i,string j){
 	return true;
 }
 string toUpperNegativeLiteral(string s){// turns -b in B;
-/*	cout << "befor: " << s << endl;*/
 	for(int i=0; i<s.size(); i++){
 		if(s.at(i) == '-'){
 			s.at(i) = toupper(s.at(i+1));
@@ -86,7 +85,7 @@ string toUpperNegativeLiteral(string s){// turns -b in B;
 }
 
 
-bool naoExiste(vector<string> a, string s){
+bool notExists(vector<string> a, string s){
 	for(int i=0; i<a.size(); i++)
 		if(s.compare(a[i]) == 0) return false;
 	return true;
@@ -107,17 +106,16 @@ bool hornSat(string expr){
 	expr = toUpperNegativeLiteral(expr);		
 	getExprs(expr);
 	sort(clause.begin(), clause.end(), firstLessThenNext);
-	
-	//copy(clause.begin(), clause.end(), nw.begin());
+		
 	for(int i=0; i<clause.size(); i++){			
-		al.push_back(clause[i]);
-		nw.push_back(clause[i]);
+		al.push_back(clause[i]);		
 		if(clause[i].size() < 5){// is (a) or (-a)
+			nw.push_back(clause[i]);
 			ut.push_back(clause[i]);
 		}
 	}
 
-	while(!nw.empty()){		
+	while(!nw.empty()){
 		for(int z=1; z<nw.front().size(); z+=2){		
 			if(nw.front().at(z-1) == ')') continue;
 			char unit = nw.front()[z];
@@ -136,15 +134,15 @@ bool hornSat(string expr){
 									// (a+b+c) our (a+c+b) e quero remover b, ai preciso saber se removo b+ ou +b
 									if(al[i].at(k+1) == ')' && nw.front().size() < 5){										
 										tmp.erase(k-1, 2);										
-									}else if(naoExiste(al,al[i])){
+									}else if(notExists(al,al[i])){
 										tmp.erase(k, 2);										
 									}
-									if(naoExiste(al, tmp)){
-										al.push_back(tmp);
-										nw.push_back(tmp);										
+									if(notExists(al, tmp)){
+										al.push_back(tmp);																	
 										if(tmp.size() < 5){//new unit clause
 											newUnit	= true;
-											ut.push_back(tmp);//new clause
+											nw.push_back(tmp);	
+											ut.push_back(tmp);
 										}	
 									}
 								}
@@ -156,16 +154,7 @@ bool hornSat(string expr){
 
 			if(newUnit && existsOppositeClauses(ut)) return false;
 			newUnit = false;
-			nw.erase(nw.begin(), nw.begin()+1);			
-			/*cout << "---- UNITS: " << endl;
-			for (int i = 0; i < ut.size(); ++i) cout << "| " << ut[i] << " |" << endl;			
-			cout << "--------------" << endl;
-			cout << "---- NEW-S: " << endl;
-			for (int i = 0; i < nw.size(); ++i) cout << "| " << nw[i] << " |" << endl;			
-			cout << "-------------" << endl;
-			cout << "---- ALL: " << endl;
-			for (int i = 0; i < al.size(); ++i) cout << "| " << al[i] << " |" << endl;			
-			cout << "-------------" << endl;*/
+			nw.erase(nw.begin(), nw.begin()+1);				
 		}
 	return true;
 }
