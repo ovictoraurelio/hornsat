@@ -16,12 +16,8 @@ using namespace std;
 
 // file to output results
 ofstream outFile;
-// a pair if index of start and ends of a expr in string
+// a vector save represent clauses on expr
 vector<string> clause;
-// counter to trues and counter to falses at expr
-int cT=0,cF=0;
-// 		    x,y,z,t    		  x,y,z,t
-int m[4] = {0,0,0,0}, v[4] = {0,0,0,0};
 
 bool isFNC(string expr){
 	int p=0;
@@ -53,7 +49,6 @@ bool isHornClause(string expr){
 	}
 	return true;
 }
-//getting all exprs inside ( ) of a expression
 void getExprs(string s){
 	vector<int> l;//left
 	for(int i=0; i<s.size(); i++){
@@ -83,8 +78,6 @@ string toUpperNegativeLiteral(string s){// turns -b in B;
 	}
 	return s;
 }
-
-
 bool notExists(vector<string> a, string s){
 	for(int i=0; i<a.size(); i++)
 		if(s.compare(a[i]) == 0) return false;
@@ -97,7 +90,6 @@ bool existsOppositeClauses(vector<string> ut){
 				return true;		
 	return false;
 }
-
 bool hornSat(string expr){	
 	bool newUnit = true;
 	string tmp;
@@ -174,9 +166,9 @@ int main(){
 				outFile << "nem todas as clausulas sao de horn";
 			}else if(!isFNC(expr)){
 				outFile << "nao esta na FNC";
-			}else if(hornSat(expr)){//cT > 0
+			}else if(hornSat(expr)){
 				outFile << "satisfativel";
-			}else{//if(cT == 0 and cF > 0)
+			}else{
 				outFile << "insatisfativel";				
 			}
 			if(!clause.empty())
