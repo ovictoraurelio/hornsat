@@ -17,7 +17,6 @@ using namespace std;
 // file to output results
 ofstream outFile;
 // a vector save represent clauses on expr
-vector<string> clause;
 
 bool isFNC(string expr){
 	int p=0;
@@ -49,7 +48,8 @@ bool isHornClause(string expr){
 	}
 	return true;
 }
-void getExprs(string s){
+vector<string> getExprs(string s){
+	vector<string> clause;
 	vector<int> l;//left
 	for(int i=0; i<s.size(); i++){
 		if(s.at(i) == '('){			
@@ -59,6 +59,7 @@ void getExprs(string s){
 			l.pop_back();
 		}
 	}
+	return clause;
 }
 bool firstLessThenNext(string i,string j){
 	if(i.size() <= j.size()) return true;
@@ -93,48 +94,46 @@ bool existsOppositeClauses(vector<string> ut){
 bool hornSat(string expr){	
 	bool newUnit = true;
 	string tmp;
-	vector<string> al, nw, ut;//all, new, unit
+	vector<string> units, clause;//all, new, unit
 
 	expr = toUpperNegativeLiteral(expr);		
-	getExprs(expr);
-	sort(clause.begin(), clause.end(), firstLessThenNext);
-		
-	for(int i=0; i<clause.size(); i++){			
-		al.push_back(clause[i]);		
-		if(clause[i].size() < 5){// is (a) or (-a)
-			nw.push_back(clause[i]);
-			ut.push_back(clause[i]);
+	clause = getExprs(expr);
+	
+	sort(clause.begin(), clause.end(), firstLessThenNext);	
+	for(int i=0; i<clause.size(); i++){		
+		if(clause[i].size() < 4){// is (a) or (A)
+			units.push_back(clause[i]);			
 		}
 	}
 
-	while(!nw.empty()){
-		for(int z=1; z<nw.front().size(); z+=2){		
-			if(nw.front().at(z-1) == ')') continue;
-			char unit = nw.front()[z];
-			char inverse = toupper(unit) == unit ? tolower(unit) : toupper(unit);
-					
-			for(int i=0; i<al.size(); i++){				
-				if(al[i].compare(nw.front()) != 0){							
-						size_t pn = al[i].find(unit);
-						size_t pu = al[i].find(inverse);
-						if(pn != string::npos && nw.front().size() < 5){//é uma unit							
-							al.erase(al.begin() + i);
-						}else if(pu != string::npos){
-							for(int k=0; k<al[i].size(); k++){
-								if(al[i].at(k) == inverse){																	
-									tmp = al[i];
-									// (a+b+c) our (a+c+b) e quero remover b, ai preciso saber se removo b+ ou +b
-									if(al[i].at(k+1) == ')' && nw.front().size() < 5){										
+	while(!units.empty()){		
+		char unit = units.front().at(1);
+		char inverse = toupper(unit) == unit ? tolower(unit) : toupper(unit);
+				
+		for(int i=0; i<clause.size(); i++){				
+			if(clause[i].compare(units.front()) != 0){
+					size_t pn = clause[i].find(unit);
+					size_t pu = clause[i].find(inverse);
+					if(pn != string::npos && units.front().size() < 4){//é uma unit							
+						clause.erase(clause.begin() + i);
+					}else if(pu != string::npos){
+						//caso eu tenha encontrado algum inverso da unit na expressao vou apagar todas as ocorrencias desse inverso.
+						for(int k=0; k<clause[i].size(); k++){
+							if(clause[i].at(k) == inverse){
+								tmp = clause[i];
+								//caso eu tenha encontrado o inverso da unit em uma expressão que é atomica eu encontrei uma contradição..
+								if(tmp.size() < 5){
+									return false;
+								}else{// (a+b+c) our (a+c+b) e quero remover b, ai preciso saber se removo b+ ou +b										
+									if(clause[i].at(k+1) == ')'){											
 										tmp.erase(k-1, 2);										
-									}else if(notExists(al,al[i])){
+									}else{						
 										tmp.erase(k, 2);										
-									}
-									if(notExists(al, tmp)){
-										al.push_back(tmp);																	
-										if(tmp.size() < 5){//new unit clause
-											newUnit	= true;
-											nw.push_back(tmp);	
-											ut.push_back(tmp);
+									}										
+									if(notExists(clause, tmp)){
+										clause.push_back(tmp);																	
+										if(tmp.size() < 4){//new unit clause											
+											units.push_back(tmp);												
 										}	
 									}
 								}
@@ -143,10 +142,7 @@ bool hornSat(string expr){
 					}
 				}
 			}
-
-			if(newUnit && existsOppositeClauses(ut)) return false;
-			newUnit = false;
-			nw.erase(nw.begin(), nw.begin()+1);				
+			units.erase(units.begin(), units.begin()+1);				
 		}
 	return true;
 }
@@ -170,9 +166,7 @@ int main(){
 				outFile << "satisfativel";
 			}else{
 				outFile << "insatisfativel";				
-			}
-			if(!clause.empty())
-				clause.clear();
+			}			
 			outFile << endl;			
 		}
 		inFile.close();
