@@ -61,14 +61,10 @@ vector<string> getExprs(string s){
 	}
 	return clause;
 }
+
 bool firstLessThenNext(string i,string j){
-	if(i.size() <= j.size()) return true;
-	else{
-		for(int k=0; k<i.size()>j.size()?j.size():i.size(); k++){
-			if(i.at(k) > j.at(k)) return false;
-		}		
-	}
-	return true;
+	if(i.size() < j.size()) return true;	
+	return false;
 }
 string toUpperNegativeLiteral(string s){// turns -b in B;
 	for(int i=0; i<s.size(); i++){
@@ -76,6 +72,27 @@ string toUpperNegativeLiteral(string s){// turns -b in B;
 			s.at(i) = toupper(s.at(i+1));
 			s.erase(s.begin() + i + 1);
 		}
+	}
+	return s;
+}
+string eliminateRedundancy(string s){
+	bool present[8];
+	memset(present, false, 8 * sizeof(bool));
+	int ind;
+	for(int i=1; i < (s.size()-1); i++){		
+		if(s.at(i) == ')') memset(present, false, 8 * sizeof(bool));
+		if(!(s.at(i-1) == '(' && s.at(i+1) == ')') &&  ((64 < s.at(i) && s.at(i) < 69) || (96 < s.at(i) && s.at(i) < 101) ) ){			
+			ind = s.at(i) == toupper(s.at(i)) ? s.at(i) - 65 + 4 : s.at(i) - 97;			
+			if(present[ind]){				
+				if(s.at(i+1) == ')'){
+					s.erase(i-1,2);
+					memset(present, false, 8 * sizeof(bool));
+				}else s.erase(i,2);
+				i-=1;
+			}else{
+				present[ind] = true;
+			}
+		}		
 	}
 	return s;
 }
@@ -94,56 +111,56 @@ bool existsOppositeClauses(vector<string> ut){
 bool hornSat(string expr){	
 	bool newUnit = true;
 	string tmp;
-	vector<string> units, clause;//all, new, unit
+	vector<string> mUnits, units, clause;//all, new, unit
 
-	expr = toUpperNegativeLiteral(expr);		
+	expr = toUpperNegativeLiteral(expr);	
+	expr = eliminateRedundancy(expr);	
 	clause = getExprs(expr);
 	
 	sort(clause.begin(), clause.end(), firstLessThenNext);	
+	
 	for(int i=0; i<clause.size(); i++){		
 		if(clause[i].size() < 4){// is (a) or (A)
-			units.push_back(clause[i]);			
+			units.push_back(clause[i]);
+			mUnits.push_back(clause[i]);
 		}
 	}
 
-	while(!units.empty()){		
+	while(!units.empty()){				
 		char unit = units.front().at(1);
-		char inverse = toupper(unit) == unit ? tolower(unit) : toupper(unit);
-				
-		for(int i=0; i<clause.size(); i++){				
-			if(clause[i].compare(units.front()) != 0){
-					size_t pn = clause[i].find(unit);
-					size_t pu = clause[i].find(inverse);
-					if(pn != string::npos && units.front().size() < 4){//é uma unit							
-						clause.erase(clause.begin() + i);
-					}else if(pu != string::npos){
-						//caso eu tenha encontrado algum inverso da unit na expressao vou apagar todas as ocorrencias desse inverso.
-						for(int k=0; k<clause[i].size(); k++){
-							if(clause[i].at(k) == inverse){
-								tmp = clause[i];
-								//caso eu tenha encontrado o inverso da unit em uma expressão que é atomica eu encontrei uma contradição..
-								if(tmp.size() < 5){
-									return false;
-								}else{// (a+b+c) our (a+c+b) e quero remover b, ai preciso saber se removo b+ ou +b										
-									if(clause[i].at(k+1) == ')'){											
-										tmp.erase(k-1, 2);										
-									}else{						
-										tmp.erase(k, 2);										
-									}										
-									if(notExists(clause, tmp)){
-										clause.push_back(tmp);																	
-										if(tmp.size() < 4){//new unit clause											
-											units.push_back(tmp);												
-										}	
-									}
-								}
-							}
+		char inverse = toupper(unit) == unit ? tolower(unit) : toupper(unit);				
+		for(int i=0; i<clause.size(); i++){			
+			if(units.front().compare(clause[i]) != 0){
+				size_t pn = clause[i].find(unit);
+				size_t pu = clause[i].find(inverse);
+				if(pn != string::npos){					
+					clause.erase(clause.begin() + i);
+					i-=1;
+				}else if(pu != string::npos){
+					tmp = clause[i];					
+					while(pu != string::npos){
+						if(tmp.size() < 4) return false;
+						if(tmp.at(pu+1) == ')'){
+							tmp.erase(pu-1, 2);
+						}else{
+							tmp.erase(pu, 2);
 						}
+						pu = tmp.find(inverse);
+					}					
+					if(tmp.size() < 4){
+						for(int j=0; j<units.size(); j++){
+							if(toupper(tmp.at(1)) == toupper(mUnits[j].at(1)) && tmp.at(1) != mUnits[j].at(1)) return false;
+						}
+						mUnits.push_back(tmp);
+						units.push_back(tmp);
 					}
+					if(notExists(clause, tmp)) clause.push_back(tmp);					
 				}
 			}
-			units.erase(units.begin(), units.begin()+1);				
-		}
+		}				
+		units.erase(units.begin(), units.begin()+1);				
+	}	
+
 	return true;
 }
 int main(){
@@ -157,7 +174,7 @@ int main(){
 		for(int k=1; k<=c; k++){
 			outFile << "caso #" << k << ": ";
 			inFile >> expr;			
-
+			
 			if(!isHornClause(expr) && isFNC(expr)){
 				outFile << "nem todas as clausulas sao de horn";
 			}else if(!isFNC(expr)){
@@ -167,12 +184,13 @@ int main(){
 			}else{
 				outFile << "insatisfativel";				
 			}			
+			
 			outFile << endl;			
 		}
 		inFile.close();
 		outFile.close();
 	}else{
-		cout << "Nao consegui abrir o arquivo";
+		//cout << "Nao consegui abrir o arquivo";
 	}
 	return 0;
 }
